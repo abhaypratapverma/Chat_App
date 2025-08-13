@@ -8,17 +8,19 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "tsc",
     "start": "node dist/index.js",
-    "dev": "nodemon --watch 'src/**/*.ts' --exec 'ts-node' src/index.ts"
+    "dev": "concurrently \"tsc -w\" \"nodemon dist/index.js\""
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "amqplib": "^0.10.8",
     "dotenv": "^17.2.1",
     "express": "^5.1.0",
     "mongoose": "^8.17.1"
   },
   "devDependencies": {
+    "@types/amqplib": "^0.10.7",
     "@types/dotenv": "^8.2.3",
     "@types/express": "^5.0.3",
     "@types/mongoose": "^5.11.97",
