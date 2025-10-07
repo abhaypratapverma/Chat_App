@@ -34,10 +34,10 @@
 import TryCatch from "../config/TryCatch.js";
 import type { Request, Response } from "express";
 // import UserService from "../services/user.js";
-import {User} from "../model/User.js";
+import { User } from "../model/User.js";
 import { redisClient } from "../index.js";
 import { publishToQueue } from "../config/rabbitmq.js";
-import {generateToken} from "../config/generateToken.js";
+import { generateToken } from "../config/generateToken.js";
 
 export const loginUser = TryCatch(async (req: Request, res: Response) => {
   const { email } = req.body;
@@ -117,4 +117,13 @@ export const verifyUser = TryCatch(async (req: Request, res: Response) => {
     token,
     user,
   });
+});
+
+export const myProfile = TryCatch(async (req: Request, res: Response) => {
+  const user = req.user;
+  console.log("User profile accessed:", user);
+  if (!user) {
+    return res.status(404).json({ message: "User not found" });
+  }
+  return res.status(200).json({ user });
 });
