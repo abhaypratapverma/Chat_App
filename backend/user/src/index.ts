@@ -9,14 +9,18 @@ dotenv.config();
 connectDb();
 connectRabbitMQ();
 
+const redisUrl = process.env.REDIS_URL;
+if (!redisUrl) throw new Error("❌ REDIS_URL is not defined");
+
 export const redisClient = createClient({
-    url: process.env.REDIS_URL,
+    
+    url: redisUrl,
 });
 
 redisClient.connect()
 .then(() => {
     console.log('Redis client connected successfully');
-}).catch((err) => {
+}).catch((err) => { 
     console.error('Redis client connection failed:', err);
 });
 
@@ -28,7 +32,10 @@ redisClient.on('error', (err) => {
 
 const app = express();
 
-app.use("api/v1",userRoutes);
+app.use(express.json());
+
+app.use("/api/v1",userRoutes);
+
 
 const PORT = process.env.PORT || 5000;
 

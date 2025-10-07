@@ -8,8 +8,8 @@ const connectDb = async () => {
     try {
         await mongoose.connect(url, {
             dbName: 'Chatappmicroserviceapp',
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
+            // useNewUrlParser: true,
+            // useUnifiedTopology: true,
         });
         console.log('MongoDB connected successfully');
     } catch (error) {
