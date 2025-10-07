@@ -1,36 +1,3 @@
-// import {TryCatch} from "../config/TryCatch.js";
-// import { Request, Response } from "express";
-// // import UserService from "../services/user.js";
-// import { redisClient } from "../index.ts";
-// import { publishToQueue } from "../config/rabbitmq.js";
-
-// export const loginUser = TryCatch(async (req: Request, res: Response) => {
-//   const { email } = req.body;
-
-//   const rateLimitKey = `otp:ratelimit:${email}`;
-//   const rateLimit = await redisClient.get(rateLimitKey);
-
-//   if (rateLimit && parseInt(rateLimit) >= 5) {
-//     return res.status(429).json({ message: "Too many requests. Please try again later." });
-//   }
-
-//   const otp = Math.floor(100000 + Math.random() * 900000).toString();
-//   const otpKey = `otp:${email}`;
-
-//   await redisClient.set(otpKey, otp, 'EX', 300); // OTP valid for 5 minutes
-//   await redisClient.set(rateLimitKey, "true", 'EX', 60); // Rate limit for 1 minute
-
-//   const message = {
-//     to: email,
-//     subject: "Your OTP Code",
-//     body: `Your OTP code is ${otp}. It is valid for 5 minutes.`
-//   };
-
-//   await publishToQueue("send-otp", JSON.stringify(message));
-
-//   // ✅ moved inside the function
-//   res.status(200).json({ message: "OTP sent to email." });
-// });
 import TryCatch from "../config/TryCatch.js";
 import type { Request, Response } from "express";
 // import UserService from "../services/user.js";
@@ -38,6 +5,7 @@ import { User } from "../model/User.js";
 import { redisClient } from "../index.js";
 import { publishToQueue } from "../config/rabbitmq.js";
 import { generateToken } from "../config/generateToken.js";
+import type { AuthenticatedRequest } from "../middleware/isAuth.js";
 
 export const loginUser = TryCatch(async (req: Request, res: Response) => {
   const { email } = req.body;
@@ -119,11 +87,52 @@ export const verifyUser = TryCatch(async (req: Request, res: Response) => {
   });
 });
 
-export const myProfile = TryCatch(async (req: Request, res: Response) => {
-  const user = req.user;
-  console.log("User profile accessed:", user);
-  if (!user) {
-    return res.status(404).json({ message: "User not found" });
+export const myProfile = TryCatch(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const user = req.user;
+    console.log("User profile accessed:", user);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    return res.status(200).json({ user });
   }
-  return res.status(200).json({ user });
-});
+);
+
+export const updateName = TryCatch(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const user = await User.findById(req.user?._id);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ message: "User not found Please Login Again" });
+    }
+    user.name = req.body.name;
+
+    await user.save();
+
+    const token = generateToken(user);
+
+    return res
+      .status(200)
+      .json({ message: "Name Updated Successfully", user, token });
+  }
+);
+
+export const getAllUsers = TryCatch(
+  async (req: AuthenticatedRequest, res: Response) => {
+    // const users = await User.find().select("-otp -__v").lean();
+    const users = await User.find();
+    return res.status(200).json({ users });
+  }
+);
+
+export const getAUser = TryCatch(
+  async (req: AuthenticatedRequest, res: Response) => {
+    const userId = req.params.id;
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    return res.status(200).json({ user });
+  }
+);
