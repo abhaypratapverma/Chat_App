@@ -136,3 +136,4 @@ export const getAUser = TryCatch(
     return res.status(200).json({ user });
   }
 );
+
