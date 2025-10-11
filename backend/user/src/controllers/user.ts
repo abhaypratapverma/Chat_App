@@ -51,7 +51,10 @@ export const loginUser = TryCatch(async (req: Request, res: Response) => {
 
   await publishToQueue("send-otp", JSON.stringify(message));
 
-  res.status(200).json({ message: "OTP sent to email." });
+  res.status(200).json({ 
+    status: true,
+    responseCode: 200,
+    message: "OTP sent to email." });
 });
 
 export const verifyUser = TryCatch(async (req: Request, res: Response) => {
