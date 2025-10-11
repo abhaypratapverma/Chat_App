@@ -84,6 +84,7 @@ export const verifyUser = TryCatch(async (req: Request, res: Response) => {
   const token = generateToken(user);
 
   return res.status(200).json({
+    responseCode: 200,
     message: "OTP verified successfully",
     token,
     user,
