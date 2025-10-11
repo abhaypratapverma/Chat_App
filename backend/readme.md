@@ -273,22 +273,6 @@ Abhay Pratap Verma — Lead Developer
 This project is licensed under the MIT License — feel free to use and modify.
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 MORE DETAILED INSTRUCTIONS
 # Chat App (Microservices)
 
