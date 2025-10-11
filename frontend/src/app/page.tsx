@@ -1,7 +1,8 @@
 import React from 'react';
+import { redirect } from 'next/navigation';
 
 const Page = () => {
-  return <div>Welcome to the Chat App</div>;
+  return redirect('/chat');
 };
 
 export default Page;
