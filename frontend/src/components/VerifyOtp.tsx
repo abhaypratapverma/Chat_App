@@ -6,14 +6,21 @@ import axios from "axios";
 import Cookies from "js-cookie";
 import { useAppData, user_service } from "@/context/AppContext";
 // import { chat_service } from "@/context/AppContext";
-import Loading from './Loading';
-import toast from 'react-hot-toast';
+import Loading from "./Loading";
+import toast from "react-hot-toast";
 
 const VerifyOtp = () => {
-  const { isAuth, setIsAuth, setUser, loading: userLoading } = useAppData();
+  const {
+    isAuth,
+    setIsAuth,
+    setUser,
+    loading: userLoading,
+    fetchChats,
+    fetchUsers,
+  } = useAppData();
   const [loading, setLoading] = useState(false);
   const searchParams = useSearchParams();
-  const { router } = useRouter();
+  const router = useRouter();
 
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState<string>("");
@@ -70,70 +77,62 @@ const VerifyOtp = () => {
     inputRefs.current[Math.min(pasteData.length, 5)]?.focus();
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
- const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+    const otpValue = otp.join("");
 
-  const otpValue = otp.join("");
+    if (otpValue.length !== 6) {
+      setError("Please enter a valid 6-digit OTP.");
+      return;
+    }
 
-  // ✅ Validate OTP
-  if (otpValue.length !== 6) {
-    setError("Please enter a valid 6-digit OTP.");
-    return;
-  }
+    setLoading(true);
 
-  setLoading(true);
-
-  try {
-    // ✅ API call to verify OTP
-    const res = await axios.post(`${user_service}/api/v1/verify-otp`, {
-      email,
-      otp: otpValue,
-    });
-
-    // ✅ Extract response data properly
-    const { responseCode, message, token, user } = res.data;
-
-    // ✅ Alert and logic based on responseCode
-    toast.success(responseCode === 200 ? "OTP Verified!" : "Verification Failed");
-
-    if (responseCode === 200) {
-      // ✅ Store token in cookies
-      Cookies.set("token", token, {
-        expires: 7, // Token expires in 7 days
-        secure: false, // Should be true when using HTTPS
-        path: "/",
+    try {
+      const res = await axios.post(`${user_service}/api/v1/verify-otp`, {
+        email,
+        otp: otpValue,
       });
 
-      // ✅ Update global state
-      setUser(user);
-      setIsAuth(true);
+  const { responseCode, token, user } = res.data;
 
-      // ✅ Redirect to chat/dashboard
-      router.push("/chat");
+      if (responseCode === 200) {
+        toast.success("OTP Verified!");
+
+        Cookies.set("token", token, {
+          expires: 7,
+          secure: false,
+          path: "/",
+        });
+
+        setUser(user);
+        setIsAuth(true);
+        fetchChats?.();
+        fetchUsers?.();
+
+        router.push("/chat");
+      } else {
+        toast.error("Verification Failed");
+      }
+
+      setOtp(["", "", "", "", "", ""]);
+      inputRefs.current[0]?.focus();
+    } catch (err) {
+      toast.error("Verification failed. Try again.");
+      console.error(err);
+
+      if (axios.isAxiosError(err)) {
+        setError(
+          err.response?.data?.message || "Verification failed. Try again."
+        );
+      } else {
+        setError(String(err) || "Verification failed. Try again.");
+      }
+    } finally {
+      setLoading(false);
     }
-
-    // ✅ Reset OTP inputs
-    setOtp(["", "", "", "", "", ""]);
-    inputRefs.current[0]?.focus();
-  } catch (err) {
-    toast.error("Verification failed. Try again.");
-    console.error(err);
-
-    // ✅ Handle Axios error safely
-    if (axios.isAxiosError(err)) {
-      setError(
-        err.response?.data?.message || "Verification failed. Try again."
-      );
-    } else {
-      setError(String(err) || "Verification failed. Try again.");
-    }
-  } finally {
-    setLoading(false);
-  }
-};
-
-
+  };
   const handleResendOtp = async () => {
     setResendLoading(true);
     setError("");
@@ -142,7 +141,7 @@ const VerifyOtp = () => {
         email,
       });
       console.log("Response:", res.data);
-      alert.toast(res.data.message);
+      toast.success(res.data.message);
       setTimer(59);
     } catch (err) {
       console.error(err);
@@ -202,7 +201,7 @@ const VerifyOtp = () => {
                     onChange={(e) => handleInputChange(index, e.target.value)}
                     onKeyDown={(e) => handleKeyDown(index, e)}
                     onPaste={handlePaste}
-                    ref={(el) => (inputRefs.current[index] = el)}
+                    ref={(el) => { inputRefs.current[index] = el; }}
                     className="w-10 h-12 text-center text-2xl rounded-lg bg-gray-700 border border-gray-600 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                 ))}
@@ -236,9 +235,7 @@ const VerifyOtp = () => {
             </button>
           </form>
           <div className="mt-6 text-center">
-            <p className="text-gray-400 text-sm mb-4">
-              Did't receive the code ?
-            </p>
+            <p className="text-gray-400 text-sm mb-4">Didn&apos;t receive the code?</p>
             {timer > 0 ? (
               <p className="text-gray-500 text-sm">
                 Resend code in 00:{timer < 10 ? `0${timer}` : timer} sec

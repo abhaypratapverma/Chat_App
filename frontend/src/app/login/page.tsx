@@ -3,7 +3,7 @@
 import Loading from "../../components/Loading";
 import { useAppData } from "@/context/AppContext";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Mail, ArrowRight, Loader2 } from "lucide-react";
 import axios from "axios";
 import { useRouter, redirect } from "next/navigation";
