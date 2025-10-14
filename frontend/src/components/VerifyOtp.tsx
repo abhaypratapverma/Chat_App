@@ -1,14 +1,19 @@
 "use client";
 import React, { useState, useRef, useEffect } from "react";
 import { Lock, Loader2, ArrowRight, ChevronLeft } from "lucide-react";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams, useRouter, redirect } from "next/navigation";
 import axios from "axios";
 import Cookies from "js-cookie";
+import { useAppData, user_service } from "@/context/AppContext";
+// import { chat_service } from "@/context/AppContext";
+import Loading from './Loading';
+import toast from 'react-hot-toast';
 
 const VerifyOtp = () => {
+  const { isAuth, setIsAuth, setUser, loading: userLoading } = useAppData();
   const [loading, setLoading] = useState(false);
   const searchParams = useSearchParams();
-  const router = useRouter();
+  const { router } = useRouter();
 
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState<string>("");
@@ -65,54 +70,79 @@ const VerifyOtp = () => {
     inputRefs.current[Math.min(pasteData.length, 5)]?.focus();
   };
 
-  // Submit handler
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const otpValue = otp.join("");
 
-    if (otpValue.length !== 6) {
-      setError("Please enter a valid 6-digit OTP.");
-      return;
-    }
+ const handleSubmit = async (e: React.FormEvent) => {
+  e.preventDefault();
 
-    setLoading(true);
-    try {
-      const res = await axios.post("http://localhost:5000/api/v1/verify-otp", {
-        email,
-        otp: otpValue,
-      });
-      alert(res.data.responseCode == 200);
-      Cookies.set("token", res.data.token, {
+  const otpValue = otp.join("");
+
+  // ✅ Validate OTP
+  if (otpValue.length !== 6) {
+    setError("Please enter a valid 6-digit OTP.");
+    return;
+  }
+
+  setLoading(true);
+
+  try {
+    // ✅ API call to verify OTP
+    const res = await axios.post(`${user_service}/api/v1/verify-otp`, {
+      email,
+      otp: otpValue,
+    });
+
+    // ✅ Extract response data properly
+    const { responseCode, message, token, user } = res.data;
+
+    // ✅ Alert and logic based on responseCode
+    toast.success(responseCode === 200 ? "OTP Verified!" : "Verification Failed");
+
+    if (responseCode === 200) {
+      // ✅ Store token in cookies
+      Cookies.set("token", token, {
         expires: 7, // Token expires in 7 days
-        secure: false, // Set to true if using HTTPS
+        secure: false, // Should be true when using HTTPS
         path: "/",
       });
-      //   router.push("/dashboard"); // example redirect
-      setOtp(["", "", "", "", "", ""]);
-      inputRefs.current[0]?.focus();
-    } catch (err) {
-      console.error(err);
-      // Safely extract message from axios error shape
-      if (axios.isAxiosError(err)) {
-        setError(
-          err.response?.data?.message || "Verification failed. Try again."
-        );
-      } else {
-        setError(String(err) || "Verification failed. Try again.");
-      }
-    } finally {
-      setLoading(false);
+
+      // ✅ Update global state
+      setUser(user);
+      setIsAuth(true);
+
+      // ✅ Redirect to chat/dashboard
+      router.push("/chat");
     }
-  };
+
+    // ✅ Reset OTP inputs
+    setOtp(["", "", "", "", "", ""]);
+    inputRefs.current[0]?.focus();
+  } catch (err) {
+    toast.error("Verification failed. Try again.");
+    console.error(err);
+
+    // ✅ Handle Axios error safely
+    if (axios.isAxiosError(err)) {
+      setError(
+        err.response?.data?.message || "Verification failed. Try again."
+      );
+    } else {
+      setError(String(err) || "Verification failed. Try again.");
+    }
+  } finally {
+    setLoading(false);
+  }
+};
+
+
   const handleResendOtp = async () => {
     setResendLoading(true);
     setError("");
     try {
-      const res = await axios.post("http://localhost:5000/api/v1/login", {
+      const res = await axios.post(`${user_service}/api/v1/login`, {
         email,
       });
       console.log("Response:", res.data);
-      alert(res.data.message);
+      alert.toast(res.data.message);
       setTimer(59);
     } catch (err) {
       console.error(err);
@@ -127,6 +157,9 @@ const VerifyOtp = () => {
       setResendLoading(false);
     }
   };
+   
+  if (userLoading) return <Loading />;
+  if (isAuth) redirect("/chat");
 
   return (
     <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
