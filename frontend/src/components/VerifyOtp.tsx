@@ -111,7 +111,8 @@ const VerifyOtp = () => {
         fetchChats?.();
         fetchUsers?.();
 
-        router.push("/chat");
+        // router.push("/chat");
+        redirect("/chat");
       } else {
         toast.error("Verification Failed");
       }
