@@ -1,9 +1,13 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import { useAppData, User } from "@/context/AppContext";
+import { useAppData, User, chat_service } from "@/context/AppContext";
 import { useRouter } from "next/navigation";
 import Loading from "@/components/Loading";
 import ChatSidebar from "@/components/ChatSidebar";
+import toast from "react-hot-toast";
+import Cookies from "js-cookie";
+import axios from "axios";
+// import {} from "../../context/AppContext";
 
 export interface Message {
   _id: string;
@@ -56,6 +60,34 @@ const ChatApp = () => {
     router.push("/login");
   };
 
+  async function createChat(u: User) {
+    try {
+      const token = Cookies.get("token");
+      if (!token) return;
+
+      const { data } = await axios.post(
+        `${chat_service}/api/v1/chat/new`,
+        {
+          userId: loggedInUser?._id,
+          otherUserId: u._id,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      setSelectedUser(data.chatId);
+      setShowAllUsers(false); 
+      await fetchChats();
+      toast.success("Chat started successfully!");
+    } catch (error) {
+      console.log(error);
+      toast.error("Failed to start chat");
+    }
+  }
+
   if (loading) return <Loading />;
 
   return (
@@ -71,7 +103,10 @@ const ChatApp = () => {
         setSelectedUser={setSelectedUser}
         handleLogout={handleLogout}
         chats={chats}
+        createChat={createChat}
       />
+
+      <div className="flex-1 flex flex-col justify-between p-4 backdrop-blur-xl bg-white/5 border-1 border-white/10"></div>
     </div>
   );
 };
