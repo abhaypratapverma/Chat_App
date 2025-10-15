@@ -1,11 +1,6 @@
 "use client";
 
-import React, {
-  createContext,
-  useState,
-  ReactNode,
-  useEffect,
-} from "react";
+import React, { createContext, useState, ReactNode, useEffect } from "react";
 import axios from "axios";
 import Cookies from "js-cookie";
 import { Toaster } from "react-hot-toast";

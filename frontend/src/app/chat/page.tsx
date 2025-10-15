@@ -8,6 +8,7 @@ import toast from "react-hot-toast";
 import Cookies from "js-cookie";
 import axios from "axios";
 // import {} from "../../context/AppContext";
+import ChatHeader from "../../components/ChatHeader";
 
 export interface Message {
   _id: string;
@@ -35,6 +36,7 @@ const ChatApp = () => {
     fetchChats,
     setChats,
   } = useAppData();
+  
 
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [message, setMessage] = useState("");
@@ -60,6 +62,27 @@ const ChatApp = () => {
     router.push("/login");
   };
 
+  async function fetchChat() {
+    const token = Cookies.get("token");
+    try {
+      const { data } = await axios.post(
+        `${chat_service}/api/v1/message/${selectedUser}`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      setMessages(data.messages);
+      setUser(data.user);
+      await fetchChats();
+    } catch (error) {
+      console.log(error);
+      toast.error("failed to laod messages");
+    }
+  }
+
   async function createChat(u: User) {
     try {
       const token = Cookies.get("token");
@@ -79,7 +102,7 @@ const ChatApp = () => {
       );
 
       setSelectedUser(data.chatId);
-      setShowAllUsers(false); 
+      setShowAllUsers(false);
       await fetchChats();
       toast.success("Chat started successfully!");
     } catch (error) {
@@ -87,6 +110,12 @@ const ChatApp = () => {
       toast.error("Failed to start chat");
     }
   }
+
+  useEffect(() => {
+    if (selectedUser) {
+      fetchChat();
+    }
+  }, [selectedUser]);
 
   if (loading) return <Loading />;
 
@@ -106,7 +135,13 @@ const ChatApp = () => {
         createChat={createChat}
       />
 
-      <div className="flex-1 flex flex-col justify-between p-4 backdrop-blur-xl bg-white/5 border-1 border-white/10"></div>
+      <div className="flex-1 flex flex-col justify-between p-4 backdrop-blur-xl bg-white/5 border-1 border-white/10">
+        <ChatHeader
+          user={user}
+          setSidebarOpen={setSidebarOpen}
+          isTyping={isTyping}
+        />
+      </div>
     </div>
   );
 };
