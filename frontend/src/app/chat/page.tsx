@@ -9,6 +9,8 @@ import Cookies from "js-cookie";
 import axios from "axios";
 // import {} from "../../context/AppContext";
 import ChatHeader from "../../components/ChatHeader";
+import ChatMessages from "../../components/ChatMessages";
+import MessageInput from "../../components/MessageInput";
 
 export interface Message {
   _id: string;
@@ -36,7 +38,6 @@ const ChatApp = () => {
     fetchChats,
     setChats,
   } = useAppData();
-  
 
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [message, setMessage] = useState("");
@@ -111,6 +112,66 @@ const ChatApp = () => {
     }
   }
 
+  const handleMessageSend = async (e: any, imageFile?: File | null) => {
+    e.preventDefault();
+
+    if (!message.trim() && !imageFile) return;
+    if (!selectedUser) return;
+
+    const token = Cookies.get("token");
+
+    try {
+      const formData = new FormData();
+      formData.append("chatId", selectedUser);
+
+      if (message.trim()) {
+        formData.append("text", message);
+      }
+
+      if (imageFile) {
+        formData.append("image", imageFile);
+      }
+
+      const { data } = await axios.post(
+        `${chat_service}/api/v1/message`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+      );
+
+      setMessages((prev) => {
+        const currentMessages = prev || [];
+        const messageExists = currentMessages.some(
+          (msg) => msg._id === data.message._id
+        );
+
+        if (!messageExists) {
+          return [...currentMessages, data.message];
+        }
+        return currentMessages;
+      });
+
+      setMessage("");
+
+      // Optionally handle socket emit or display message text
+      const displayText = imageFile ? "📸 Image sent" : message;
+      console.log("Sent:", displayText);
+    } catch (error: any) {
+      console.error(error);
+      toast.error(error?.response?.data?.message || "Failed to send message");
+    }
+  };
+
+  const handleTyping = (value: string) => {
+    setMessage(value);
+    if (!selectedUser) return;
+    // socket setup
+  };
+
   useEffect(() => {
     if (selectedUser) {
       fetchChat();
@@ -140,6 +201,17 @@ const ChatApp = () => {
           user={user}
           setSidebarOpen={setSidebarOpen}
           isTyping={isTyping}
+        />
+        <ChatMessages
+          selectedUser={selectedUser}
+          messages={messages}
+          loggedInUser={loggedInUser}
+        />
+        <MessageInput
+          selectedUser={selectedUser}
+          message={message}
+          setMessage={handleTyping}
+          handleMessageSend={handleMessageSend}
         />
       </div>
     </div>
