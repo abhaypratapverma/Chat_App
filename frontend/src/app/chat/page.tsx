@@ -205,6 +205,7 @@ const ChatApp = () => {
           user={user}
           setSidebarOpen={setSidebarOpen}
           isTyping={isTyping}
+          onlineUsers={onlineUsers}
         />
         <ChatMessages
           selectedUser={selectedUser}

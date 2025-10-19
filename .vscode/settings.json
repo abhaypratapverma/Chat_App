@@ -1,0 +1,8 @@
+// {
+//     "editor.defaultFormatter": "esbenp.prettier-vscode",
+//     "editor.inlineSuggest.edits.showCollapsed": true,
+//     "files.autoGuessEncoding": true,
+//     "path-intellisense.autoSlashAfterDirectory": true,
+//     "path-intellisense.autoTriggerNextSuggestion": true,
+//     "path-intellisense.extensionOnImport": true
+// }
