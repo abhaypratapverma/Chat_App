@@ -70,7 +70,7 @@ const ChatSidebar = ({
             </h2>
           </div>
           <button
-            className={`p-2.5mrounded-lg transition-colors ${
+            className={`p-2.5 rounded-lg transition-colors ${
               showAllUsers
                 ? "bg-red-600 hover:bg-red-700 text-white"
                 : "bg-green-600 hover:bg-green-700 text-white "
@@ -231,7 +231,7 @@ const ChatSidebar = ({
           </div>
         )}
       </div>
-      {/* fotter */}
+      {/* footer */}
 
       <div className="p-4 border-t border-gray-700 space-y-2">
         {/* Profile Link */}

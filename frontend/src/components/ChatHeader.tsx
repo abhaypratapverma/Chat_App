@@ -47,7 +47,7 @@ const ChatHeader = ({
                 {/* online user indicator can go here */}
                 {isOnlineUser && (
                   <span className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-green-500 border-2 border-gray-800">
-                    <span className="absolute inset-0 rounded-full bg-green-500 animate-ping opaciity-75"></span>
+                    <span className="absolute inset-0 rounded-full bg-green-500 animate-ping opacity-75"></span>
                   </span>
                 )}
               </div>
