@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import { useAppData, User, chat_service } from "@/context/AppContext";
+import { SocketData } from "@/context/SocketContext";
 import { useRouter } from "next/navigation";
 import Loading from "@/components/Loading";
 import ChatSidebar from "@/components/ChatSidebar";
@@ -39,6 +40,8 @@ const ChatApp = () => {
     setChats,
   } = useAppData();
 
+  const { onlineUsers } = SocketData();
+  console.log(" USers", users);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -194,6 +197,7 @@ const ChatApp = () => {
         handleLogout={handleLogout}
         chats={chats}
         createChat={createChat}
+        onlineUsers={onlineUsers}
       />
 
       <div className="flex-1 flex flex-col justify-between p-4 backdrop-blur-xl bg-white/5 border-1 border-white/10">
