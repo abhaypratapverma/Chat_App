@@ -83,9 +83,92 @@ const ChatApp = () => {
       await fetchChats();
     } catch (error) {
       console.log(error);
-      toast.error("failed to laod messages");
+      toast.error("failed to load messages");
     }
   }
+  // const moveChatToTop = (
+  //   chatId: string,
+  //   newMessage: any,
+  //   updatedUnseenCount = true
+  // ) => {
+  //   setChats((prev) => {
+  //     if (!prev) return null;
+  //     const updatedChats = [...prev];
+  //     const chatIndex = updatedChats.findIndex(
+  //       (chat) => chat.chat._id === chatId
+  //     );
+  //     if (chatIndex !== -1) {
+  //       const [moveChat] = updatedChats.splice(chatIndex, 1);
+  //       const updatedChat = {
+  //         ...moveChat,
+  //         chat: {
+  //           ...moveChat.chat,
+  //           latestMessage: {
+  //             text: newMessage.text,
+  //             sender: newMessage.sender,
+  //           },
+  //           updatedAt: new Date().toString(),
+  //           unseenCount:
+  //             updatedUnseenCount && new Message.sender() !== loggedInUser?._id
+  //               ? (moveChat.chat.unseenCount || 0) + 1
+  //               : movedChat.chat.unseenCount || 0,
+  //         },
+  //       };
+
+  //       updatedChats.unshift(updatedChat);
+  //     }
+  //     return updatedChats;
+  //   });
+  // };
+  const moveChatToTop = (
+    chatId: string,
+    newMessage: any,
+    updateUnseen = true
+  ) => {
+    setChats((prev) => {
+      if (!prev) return null;
+      const updatedChats = [...prev];
+      const chatIndex = updatedChats.findIndex((c) => c.chat._id === chatId);
+      if (chatIndex !== -1) {
+        const [movedChat] = updatedChats.splice(chatIndex, 1);
+        const updatedChat = {
+          ...movedChat,
+          chat: {
+            ...movedChat.chat,
+            latestMessage: {
+              text: newMessage.text,
+              sender: newMessage.sender,
+            },
+            updatedAt: new Date().toString(),
+            unseenCount:
+              updateUnseen && newMessage.sender !== loggedInUser?._id
+                ? (movedChat.chat.unseenCount || 0) + 1
+                : movedChat.chat.unseenCount || 0,
+          },
+        };
+        updatedChats.unshift(updatedChat);
+      }
+      return updatedChats;
+    });
+  };
+
+  const resetUnseenCount = (chatId: string) => {
+    setChats((prev) => {
+      if (!prev) return null;
+      return prev.map((chat) => {
+        if (chat.chat._id === chatId) {
+          return {
+            ...chat,
+            chat: {
+              ...chat.chat,
+              unseenCount: 0,
+            },
+          };
+        }
+        return chat;
+      });
+    });
+  };
 
   async function createChat(u: User) {
     try {
@@ -123,7 +206,7 @@ const ChatApp = () => {
 
     if (typingTimeout) {
       clearTimeout(typingTimeout);
-      setTypingTimeOut(null);
+      setTypingTimeout(null);
     }
 
     socket?.emit("stopTyping", {
@@ -198,31 +281,66 @@ const ChatApp = () => {
         userId: loggedInUser?._id,
       });
     }, 2000);
-    setTypingTimeOut(timeout);
+    setTypingTimeout(timeout);
   };
 
   useEffect(() => {
+    socket?.on("newMessage", (message) => {
+      console.log("Received new Msg ", message);
+    });
+    // if (selectedUser === message.chatId) {
+    //   setMessage((prev) => {
+    //     const currentMessages = prev || [];
+    //     const messageExists = currentMessages.some(
+    //       (msg) => msg._id === message._id
+    //     );
+    //     if (!messageExists) {
+    //       return [...currentMessages, messages];
+    //     }
+    //     return currentMessages;
+    //   });
+    //   moveChatToTop(message.chatId, message, false);
+    // }
+    socket?.on("newMessage", (newMsg) => {
+      console.log("Received new message", newMsg);
+      setMessages((prev) => {
+        const current = prev || [];
+        const exists = current.some((m) => m._id === newMsg._id);
+        if (!exists) {
+          return [...current, newMsg];
+        }
+        return current;
+      });
+
+      if (newMsg.chatId === selectedUser) {
+        moveChatToTop(newMsg.chatId, newMsg, false);
+      }
+    });
+
     socket?.on("userTyping", (data) => {
-      console.log("recieved user typing", data);
+      console.log("received user typing", data);
       if (data.chatId === selectedUser && data.userId !== loggedInUser?._id) {
         setIsTyping(true);
       }
     });
     socket?.on("userStoppedTyping", (data) => {
-      console.log("recieved user stopped typing", data);
+      console.log("received user stopped typing", data);
       if (data.chatId === selectedUser && data.userId !== loggedInUser?._id) {
         setIsTyping(false);
       }
     });
     return () => {
-      (socket?.off("userTyping"), socket?.off("userStoppedTyping"));
+      socket?.off("newMessage");
+      socket?.off("userTyping");
+      socket?.off("userStoppedTyping");
     };
-  }, [socket, selectedUser, loggedInUser?._id]);
+  }, [socket, selectedUser, setChats, loggedInUser?._id]);
 
   useEffect(() => {
     if (selectedUser) {
       fetchChat();
       setIsTyping(false);
+      resetUnseenCount(selectedUser);
       socket?.emit("joinChat", selectedUser);
       return () => {
         socket?.emit("leaveChat", selectedUser);

@@ -85,6 +85,34 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   //     setLoading(false);
   //   }
   // }
+  // async function fetchUser() {
+  //   try {
+  //     const token = Cookies.get("token");
+  //     if (!token) {
+  //       setLoading(false);
+  //       return;
+  //     }
+  //     const { data } = await axios.get(`${user_service}/api/v1/me`, {
+  //       headers: {
+  //         Authorization: `Bearer ${token}`,
+  //       },
+  //     });
+  //     -setUser(data);
+  //     +(
+  //       // API returns { user }, so store data.user to keep shape consistent
+  //       (+setUser(data.user || data))
+  //     );
+  //     setIsAuth(true);
+  //     setLoading(false);
+  //   } catch (error) {
+  //     console.error("Error fetching user:", error);
+  //     setUser(null);
+  //     setIsAuth(false);
+  //     setLoading(false);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // }
   async function fetchUser() {
     try {
       const token = Cookies.get("token");
@@ -97,11 +125,10 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
           Authorization: `Bearer ${token}`,
         },
       });
-      -setUser(data);
-      +(
-        // API returns { user }, so store data.user to keep shape consistent
-        (+setUser(data.user || data))
-      );
+
+      // Normalize response: API may return { user } or the user object directly
+      const userData = data?.user ?? data;
+      setUser(userData || null);
       setIsAuth(true);
       setLoading(false);
     } catch (error) {
