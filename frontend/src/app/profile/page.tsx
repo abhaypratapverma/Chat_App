@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react"; // ✅ fix: useEffect imported correctly
+import React, { useState, useEffect } from "react"; 
 import { useAppData } from "@/context/AppContext";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
@@ -11,12 +11,12 @@ import { user_service } from "@/context/AppContext";
 const ProfilePage = () => {
   const { user, isAuth, loading, setUser } = useAppData();
   const [isEdit, setIsEdit] = useState(false);
-  const [name, setName] = useState<string>(""); // ✅ default to empty string
+  const [name, setName] = useState<string>(""); 
   const router = useRouter();
 
   const editHandler = () => {
     setIsEdit(!isEdit);
-    setName(user?.name || ""); // ✅ safely handle undefined user name
+    setName(user?.name || "");
   };
 
   const submitHandler = async (e: React.FormEvent) => {
