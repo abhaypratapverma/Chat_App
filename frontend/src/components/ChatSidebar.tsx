@@ -242,7 +242,9 @@ const ChatSidebar = ({
           <div className="p-1.5 bg-gray-700 rounded-lg">
             <UserCircle className="w-4 h-4 text-gray-400" />
           </div>
-          <span className="font-medium text-gray-300">Profile</span>
+          <span className="font-medium text-gray-300">
+            {loggedInUser?.name || "Profile"}
+          </span>
         </Link>
 
         {/* Logout Button */}
