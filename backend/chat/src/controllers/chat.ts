@@ -343,20 +343,40 @@ export const sendMessage = TryCatch(async (req, res) => {
 
   const savedMessage = await new Messages(messageData).save();
 
-  // Emit to chat room so everyone joined gets it
+  console.log("💬 New message created:", savedMessage.text);
+
+  // Emit to the chat room so everyone joined gets it
   io.to(chatId).emit("newMessage", savedMessage);
 
-  // Also emit directly to the receiver if online
+  // Emit to receiver if directly connected
   const receiverId = chat.users.find((u) => u.toString() !== senderId);
   const receiverSocketId = getReceiverSocketId(receiverId?.toString() || "");
   if (receiverSocketId) {
     io.to(receiverSocketId).emit("newMessage", savedMessage);
   }
 
-  // Also notify sender’s socket (to keep UI in sync)
+  // Also emit to sender (so they get their own message instantly)
   const senderSocketId = getReceiverSocketId(senderId);
   if (senderSocketId) {
     io.to(senderSocketId).emit("newMessage", savedMessage);
+  }
+  if (receiverSocketId) {
+    const receiverSocket = io.sockets.sockets.get(receiverSocketId);
+    const isReceiverInChatRoom = receiverSocket?.rooms.has(chatId);
+
+    // If receiver is in chat, mark message as seen
+    if (isReceiverInChatRoom) {
+      savedMessage.seen = true;
+      savedMessage.seenAt = new Date();
+      await savedMessage.save();
+
+      // Notify sender about seen
+      io.to(senderSocketId).emit("messagesSeen", {
+        chatId,
+        seenBy: receiverId,
+        messageIds: [savedMessage._id],
+      });
+    }
   }
 
   res.status(201).json({ message: savedMessage });

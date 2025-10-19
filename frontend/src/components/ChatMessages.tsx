@@ -18,7 +18,7 @@ const ChatMessages = ({
 }: ChatMessagesProps) => {
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  // seen feaature to be add after socket
+  // seen feature to be add after socket
   const uniqueMessages = useMemo(() => {
     if (!messages) return [];
     const seen = new Set();
@@ -110,7 +110,7 @@ const ChatMessages = ({
                   >
                     <span>{moment(e.createdAt).format("hh:mm A, MMM D")}</span>
 
-                    {e.seen ? (
+                    {/* {e.seen ? (
                       <div className="flex items-center gap-1 text-blue-400">
                         <CheckCheck className="w-3 h-3" />
                         {e.seenAt && (
@@ -119,6 +119,17 @@ const ChatMessages = ({
                       </div>
                     ) : (
                       <Check className="w-3 h-3 text-gray-500" />
+                    )} */}
+                    {isSentByMe && (
+                      <>
+                        {e.seen ? (
+                          <div className="flex items-center gap-1 text-blue-400">
+                            <CheckCheck className="w-3 h-3" />
+                          </div>
+                        ) : (
+                          <Check className="w-3 h-3 text-gray-500" />
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -128,7 +139,6 @@ const ChatMessages = ({
           </>
         )}
       </div>
-      
     </div>
   );
 };
