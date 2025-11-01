@@ -15,7 +15,7 @@ export const loginUser = TryCatch(async (req: Request, res: Response) => {
 
   const limit = 5; // max OTPs allowed
   const ttl = 60; // 1 minute window
-
+  console.log("test");
   // get current count
   let currentCount = await redisClient.get(rateLimitKey);
   const count = currentCount ? parseInt(currentCount) : 0;
@@ -51,10 +51,11 @@ export const loginUser = TryCatch(async (req: Request, res: Response) => {
 
   await publishToQueue("send-otp", JSON.stringify(message));
 
-  res.status(200).json({ 
+  res.status(200).json({
     status: true,
     responseCode: 200,
-    message: "OTP sent to email." });
+    message: "OTP sent to email.",
+  });
 });
 
 export const verifyUser = TryCatch(async (req: Request, res: Response) => {
@@ -140,4 +141,3 @@ export const getAUser = TryCatch(
     return res.status(200).json({ user });
   }
 );
-
