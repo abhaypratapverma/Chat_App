@@ -1,4 +1,5 @@
 "use client";
+
 import React, { useEffect, useState } from "react";
 import { useAppData, User, chat_service } from "@/context/AppContext";
 import { SocketData } from "@/context/SocketContext";
@@ -8,9 +9,9 @@ import ChatSidebar from "@/components/ChatSidebar";
 import toast from "react-hot-toast";
 import Cookies from "js-cookie";
 import axios from "axios";
-import ChatHeader from "../../components/ChatHeader";
-import ChatMessages from "../../components/ChatMessages";
-import MessageInput from "../../components/MessageInput";
+import ChatHeader from "@/components/ChatHeader";
+import ChatMessages from "@/components/ChatMessages";
+import MessageInput from "@/components/MessageInput";
 
 export interface Message {
   _id: string;
@@ -27,7 +28,7 @@ export interface Message {
   createdAt: string;
 }
 
-const ChatApp = () => {
+const ChatApp: React.FC = () => {
   const {
     loading,
     isAuth,
@@ -40,6 +41,7 @@ const ChatApp = () => {
   } = useAppData();
 
   const { onlineUsers, socket } = SocketData();
+
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -53,7 +55,7 @@ const ChatApp = () => {
 
   const router = useRouter();
 
-  // ✅ Redirect to login if user not authenticated
+  // ✅ Redirect to login if not authenticated
   useEffect(() => {
     if (!isAuth && !loading) router.push("/login");
   }, [isAuth, loading, router]);
@@ -64,7 +66,7 @@ const ChatApp = () => {
   };
 
   // ✅ Fetch messages for selected chat
-  async function fetchChat() {
+  const fetchChat = async () => {
     const token = Cookies.get("token");
     if (!selectedUser || !token) return;
 
@@ -76,27 +78,27 @@ const ChatApp = () => {
           headers: { Authorization: `Bearer ${token}` },
         }
       );
+
       setMessages(data.messages || []);
-      setUser(data.user);
+      setUser(data.user || null);
       await fetchChats();
     } catch (error) {
-      console.log(error);
+      console.error(error);
       toast.error("Failed to load messages");
     }
-  }
+  };
 
-  // ✅ Move active chat to top of sidebar
+  // ✅ Move active chat to top
   const moveChatToTop = (
     chatId: string,
-    newMessage: any,
+    newMessage: { text: string; sender: string },
     updateUnseen = true
   ) => {
     setChats((prev) => {
-      if (!prev) return null;
+      if (!prev) return prev;
 
       const updatedChats = [...prev];
       const chatIndex = updatedChats.findIndex((c) => c.chat._id === chatId);
-
       if (chatIndex !== -1) {
         const [movedChat] = updatedChats.splice(chatIndex, 1);
         const updatedChat = {
@@ -107,7 +109,7 @@ const ChatApp = () => {
               text: newMessage.text,
               sender: newMessage.sender,
             },
-            updatedAt: new Date().toString(),
+            updatedAt: new Date().toISOString(),
             unseenCount:
               updateUnseen && newMessage.sender !== loggedInUser?._id
                 ? (movedChat.chat.unseenCount || 0) + 1
@@ -120,23 +122,20 @@ const ChatApp = () => {
     });
   };
 
+  // ✅ Reset unseen message count
   const resetUnseenCount = (chatId: string) => {
     setChats((prev) => {
-      if (!prev) return null;
-      return prev.map((chat) => {
-        if (chat.chat._id === chatId) {
-          return {
-            ...chat,
-            chat: { ...chat.chat, unseenCount: 0 },
-          };
-        }
-        return chat;
-      });
+      if (!prev) return prev;
+      return prev.map((chat) =>
+        chat.chat._id === chatId
+          ? { ...chat, chat: { ...chat.chat, unseenCount: 0 } }
+          : chat
+      );
     });
   };
 
-  // ✅ Create new chat if not exists
-  async function createChat(u: User) {
+  // ✅ Create a new chat
+  const createChat = async (u: User) => {
     try {
       const token = Cookies.get("token");
       if (!token) return;
@@ -157,13 +156,13 @@ const ChatApp = () => {
       await fetchChats();
       toast.success("Chat started successfully!");
     } catch (error) {
-      console.log(error);
+      console.error(error);
       toast.error("Failed to start chat");
     }
-  }
+  };
 
-  // ✅ Send message (text/image)
-  const handleMessageSend = async (e: any, imageFile?: File | null) => {
+  // ✅ Send message (text or image)
+  const handleMessageSend = async (e: React.FormEvent, imageFile?: File | null) => {
     e.preventDefault();
 
     if (!message.trim() && !imageFile) return;
@@ -197,32 +196,24 @@ const ChatApp = () => {
       );
 
       setMessages((prev) => {
-        const currentMessages = prev || [];
-        const messageExists = currentMessages.some(
-          (msg) => msg._id === data.message._id
-        );
-        if (!messageExists) return [...currentMessages, data.message];
-        return currentMessages;
+        const exists = prev.some((msg) => msg._id === data.message._id);
+        return exists ? prev : [...prev, data.message];
       });
 
-      setMessage("");
       const displayText = message || (imageFile ? "📷 Photo" : "");
+      setMessage("");
 
-      moveChatToTop(
-        selectedUser!,
-        {
-          text: displayText,
-          sender: data.sender,
-        },
-        false
-      );
+      moveChatToTop(selectedUser, {
+        text: displayText,
+        sender: data.sender,
+      });
     } catch (error: any) {
       console.error(error);
       toast.error(error?.response?.data?.message || "Failed to send message");
     }
   };
 
-  // ✅ Typing indicator handler
+  // ✅ Handle typing indicator
   const handleTyping = (value: string) => {
     setMessage(value);
     if (!selectedUser || !socket) return;
@@ -242,35 +233,27 @@ const ChatApp = () => {
         userId: loggedInUser?._id,
       });
     }, 2000);
+
     setTypingTimeout(timeout);
   };
 
-  // ✅ Socket listeners setup
+  // ✅ Socket listeners
   useEffect(() => {
     if (!socket) return;
 
     const handleNewMessage = (newMsg: Message) => {
-      console.log("📩 Received new message:", newMsg);
-
-      // Only add to messages if it belongs to the currently open chat
       if (newMsg.chatId === selectedUser) {
         setMessages((prev) => {
-          const current = prev || [];
-          const exists = current.some((m) => m._id === newMsg._id);
-          if (!exists) return [...current, newMsg];
-          return current;
+          const exists = prev.some((m) => m._id === newMsg._id);
+          return exists ? prev : [...prev, newMsg];
         });
-
-        // If message is for active chat, move that chat to top without incrementing unseen
         moveChatToTop(newMsg.chatId, newMsg, false);
 
-        // notify backend that message was seen (keep existing behavior)
-        socket?.emit("markMessagesSeen", {
+        socket.emit("markMessagesSeen", {
           chatId: selectedUser,
           messageIds: [newMsg._id],
         });
       } else {
-        // For other chats: only move to top and increment unseen count (do not add to current messages)
         moveChatToTop(newMsg.chatId, newMsg, true);
       }
     };
@@ -288,78 +271,29 @@ const ChatApp = () => {
         setIsTyping(false);
       }
     });
-    // socket.on(
-    //   "messagesSeen",
-    //   (payload: { chatId: string; seenBy: string; messageIds: string[] }) => {
-    //     console.log("messagesSeen payload", payload);
-    //     // mark messages as seen in current messages list
-    //     setMessages((prev) =>
-    //       prev
-    //         ? prev.map((m) =>
-    //             payload.messageIds.includes(m._id)
-    //               ? { ...m, seen: true, seenAt: new Date().toISOString() }
-    //               : m
-    //           )
-    //         : prev
-    //     );
 
-    //     // reset unseen count for the chat in chats list
-    //     setChats((prev) =>
-    //       prev
-    //         ? prev.map((c) =>
-    //             c.chat._id === payload.chatId
-    //               ? { ...c, chat: { ...c.chat, unseenCount: 0 } }
-    //               : c
-    //           )
-    //         : prev
-    //     );
-    //   }
-    // );
-    socket?.on("messagesSeen", (data) => {
-      console.log("✅ Message seen event received:", data);
-
+    socket.on("messagesSeen", (data) => {
       if (selectedUser === data.chatId) {
-        setMessages((prev) => {
-          if (!prev) return null;
-
-          return prev.map((msg) => {
-            // Case 1: Backend sends specific message IDs
-            if (
-              msg.sender === loggedInUser?._id &&
-              Array.isArray(data.messageIds) &&
-              data.messageIds.includes(msg._id)
-            ) {
-              return {
-                ...msg,
-                seen: true,
-                seenAt: new Date().toISOString(),
-              };
-            }
-
-            // Case 2: Backend doesn’t send messageIds but indicates all seen
-            if (msg.sender === loggedInUser?._id && !data.messageIds) {
-              return {
-                ...msg,
-                seen: true,
-                seenAt: new Date().toISOString(),
-              };
-            }
-
-            return msg; // no change
-          });
-        });
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg.sender === loggedInUser?._id &&
+            (!data.messageIds || data.messageIds.includes(msg._id))
+              ? { ...msg, seen: true, seenAt: new Date().toISOString() }
+              : msg
+          )
+        );
       }
     });
 
     return () => {
-      socket?.off("newMessage", handleNewMessage);
-      socket?.off("messagesSeen");
-      socket?.off("userTyping");
-      socket?.off("userStoppedTyping");
+      socket.off("newMessage", handleNewMessage);
+      socket.off("messagesSeen");
+      socket.off("userTyping");
+      socket.off("userStoppedTyping");
     };
   }, [socket, selectedUser, loggedInUser?._id]);
 
-  // ✅ Join/Leave chat room logic
+  // ✅ Join/leave chat room
   useEffect(() => {
     if (selectedUser && socket) {
       fetchChat();
@@ -374,7 +308,7 @@ const ChatApp = () => {
     }
   }, [selectedUser, socket]);
 
-  // ✅ Clear typing timeout on unmount
+  // ✅ Clear typing timeout
   useEffect(() => {
     return () => {
       if (typingTimeout) clearTimeout(typingTimeout);
@@ -400,7 +334,7 @@ const ChatApp = () => {
         onlineUsers={onlineUsers}
       />
 
-      <div className="flex-1 flex flex-col justify-between p-4 backdrop-blur-xl bg-white/5 border-1 border-white/10">
+      <div className="flex-1 flex flex-col justify-between p-4 backdrop-blur-xl bg-white/5 border border-white/10">
         <ChatHeader
           user={user}
           setSidebarOpen={setSidebarOpen}

@@ -136,7 +136,7 @@ const ProfilePage = () => {
                 ) : (
                   <div className="flex items-center justify-between p-4 bg-gray-700  rounded-lg border border-gray-600">
                     <span className="text-white font-medium text-lg ">
-                      {user.name || "Not set "}
+                      {user?.name || "Not set "}
                     </span>
                     <button
                       onClick={editHandler}
